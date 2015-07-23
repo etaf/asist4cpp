@@ -1,0 +1,133 @@
+{% extends "asist4cpp/base.html"%}
+
+{% load staticfiles %}
+{% block extra-css %}
+ <!-- DataTables CSS -->
+ <link href="{% static "asist4cpp/bower_components/datatables-plugins/integration/bootstrap/3/dataTables.bootstrap.css" %}" rel="stylesheet">
+
+ <!-- DataTables Responsive CSS -->
+ <link href="{% static "asist4cpp/bower_components/datatables-responsive/css/dataTables.responsive.css" %}" rel="stylesheet">
+ <link href="{% static "asist4cpp/bower_components/datatables-responsive/css/dataTables.responsive.css" %}" rel="stylesheet">
+
+ <!-- switch button !-->
+ <link href="{% static "asist4cpp/bower_components/bootstrap-switch/css/bootstrap-switch.min.css" %}" rel="stylesheet">
+{% endblock %}
+
+{% block child-page %}
+<div id="page-wrapper">
+
+    <hr>
+    <div class="row">
+        <div class="col-lg-12 bg-primary">
+            <h4>说明</h4>
+            <ul>
+                <li>监视对象：最近上传并生成了随机帐号密码的学生</li>
+                <li>检测一个帐号多个IP以及多个IP一个帐号的情况</li>
+                <li>可随意开关，若开启，即使网页关闭也还会继续监视，所以不用的话记得关闭，避免浪费资源</li>
+                <li>clear 按钮可将监控记录从后台清除。</li>
+            </ul>
+        </div>
+    </div>
+    <!-- /.row -->
+    <hr>
+    <div class = "row">
+        <div class ="col-lg-10" >
+            <h3>
+                <input id="input_switch" type="checkbox" name="my-checkbox" {% if state %}checked{%endif%}>
+                <span class="label label-primary" id="btn_switch" >{% if state %} Running {% else %} Stopped {%endif%}</span>
+            </h3>
+        </div>
+        <div class ="col-lg-2">
+            <h3>
+                <button class="btn btn-primary " id="btn_clear" >Clear</button>
+            </h3>
+        </div>
+    </div>
+
+    <!--<hr>-->
+    <div class="row">
+        <div class="col-lg-12">
+
+            <div class="panel panel-primary">
+                <div class="panel-heading">
+                    监视面板
+                </div>
+                <!-- /.panel-heading -->
+                <div class="panel-body" id="monitor_content">
+                    </div>
+                </div>
+                <!-- /.panel-body -->
+            </div>
+            <!-- /.panel -->
+        </div>
+        <!-- /.col-lg-12 -->
+    </div>
+    <!-- /.row -->
+</div>
+<!-- /#page-wrapper -->
+{% endblock %}
+
+{% block extra-js %}
+<!-- switch button -->
+<script src="{% static "asist4cpp/bower_components/bootstrap-switch/js/bootstrap-switch.min.js" %} "></script>
+
+<script>
+var myinterval;
+$(document).ready(function() {
+
+    function update_monitor_table(){
+        $.post("/asist4cpp/update_monitor_table/", function(data) {
+            $('#monitor_content').empty();
+            $('#monitor_content').append(data.data);
+        });
+    }
+    $("[name='my-checkbox']").bootstrapSwitch();
+    update_monitor_table();
+    if( $('input[name="my-checkbox"]:checked').length > 0 )
+    {
+        myinterval = setInterval(update_monitor_table,5000);
+    }
+    $('input[name="my-checkbox"]').on('switchChange.bootstrapSwitch', function(event, state) {
+        $('#btn_switch').empty();
+        var state_content;
+        if(state){
+            state_content = "Running";
+            $.get("/asist4cpp/switch_monitor/?switch=on", function(data){
+                if(data.success == false){
+                    alert("Switch on failed!");
+                    window.location.href="/asist4cpp/monitor/";
+                    return
+                }
+               myinterval = setInterval(update_monitor_table,5000);
+            });
+        }
+        else{
+            state_content = "Stopped";
+            $.get("/asist4cpp/switch_monitor/?switch=off", function(data){
+                if(data.success == false){
+                    alert("Switch off failed!");
+                    window.location.href="/asist4cpp/monitor/";
+                    return
+                }
+               clearInterval(myinterval);
+            });
+        }
+        console.log(state);
+        $('#btn_switch').append(state_content);
+    });
+    $('#btn_clear').click(function(){
+        if( $('#input_switch').prop('checked') ){
+            alert("请先将监视器关掉!");
+            return;
+        }
+        $.get("/asist4cpp/switch_monitor/?switch=clear", function(data){
+            window.location.href="/asist4cpp/monitor/";
+            return;
+        });
+    });
+});
+
+</script>
+
+{% endblock %}
+

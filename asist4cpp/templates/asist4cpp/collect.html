@@ -1,0 +1,124 @@
+{% extends "asist4cpp/base.html"%}
+
+{% load staticfiles %}
+{% block extra-css %}
+{% endblock %}
+
+{% block child-page %}
+<div id="page-wrapper">
+    <hr>
+    <div class="row">
+        <div class="col-lg-12 bg-primary">
+            <h4>说明</h4>
+            <ul>
+                <li>注意，需要填写要统计的考试的提交列表的地址（这样才知道去哪里统计），以及考试的题目个数，每道题的需要的关键字。</li>
+                <li>关键字过滤可检测是否是注释中的关键字。</li>
+                <li>统计完后得到压缩包，若解压后乱码，请用 7Z 解压。</li>
+                <li>压缩包内有成绩统计，每个人的源码。</li>
+            </ul>
+        </div>
+    </div>
+    <!-- /.row -->
+
+    <hr>
+    <div class="row">
+        <div class="col-lg-12">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                        <div id="div_download_res">
+                        </div>
+                </div>
+                <!-- /.panel-heading -->
+
+                <div class="panel-body">
+                    <div>
+                        <form class="form-horizontal" id="problem_form">
+                            <div class="form-group">
+                                <label class ="control-label col-md-2" for="input_submission_url">考试提交列表url</label>
+                                <div class = "col-sm-8">
+                                    <input  id="input_submission_url" type="url" class="form-control col-md-2" name="submission_url" required placeholder="http://emil.fzu.edu.cn/contests/159/submissions" >
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class ="control-label col-md-2" for="input_problem_num">请输入考试题目数</label>
+                                <div class = "col-sm-2">
+                                    <input  id="input_problem_num" type="number" class="form-control col-md-2" name="problem_num" value="1" required>
+                                </div>
+                            </div>
+                            <div id="problem_blocks">
+                                <!--                            <div class="form-group" >-->
+                                <!--<label class = "control-label col-md-2" for="input_problem_1">题目1关键词</label>-->
+                                <!--<div class = "col-sm-8">-->
+                                <!--<input id="input_problem_1" type="text" class="form-control col-md-2" name="problem_1" value = "cin cout">-->
+                                <!--</div>-->
+                                <!--</div>-->
+                            </div>
+                        </form>
+                        <hr>
+                        <div>
+                            <button id="start_collect_btn" class="btn btn-primary"><span class = "fa fa-download"></span> 开始统计</button>
+                        </div>
+                        <hr>
+                    </div>
+                </div>
+                <!-- /.panel-body -->
+            </div>
+            <!-- /.panel -->
+        </div>
+        <!-- /.col-lg-12 -->
+    </div>
+    <!-- /.row -->
+</div>
+<!-- /#page-wrapper -->
+{% endblock %}
+
+{% block extra-js %}
+
+<!-- waiting-for dialog js> -->
+<script src="{% static "asist4cpp/bower_components/bootstrap-waitingfor/bootstrap-waitingfor.js" %} "></script>
+<script>
+
+$(document).ready(function(){
+    $('#start_collect_btn').click(function(){
+        var problem_num = parseInt($('#input_problem_num').val());
+        if( $.isNumeric(problem_num) == false || problem_num <= 0){
+            alert("请填写考试题目数及每道题的代码要求出现的关键字!");
+            return;
+        }
+
+        waitingDialog.show("系统正在统计成绩，请稍后...");
+        //waitingDialog.show("系统正在统计成绩，请稍后...",{onHide : function(){alert('统计完成')}});
+
+        $.post("/asist4cpp/start_collect/",$('#problem_form').serialize(), function(data) {
+            waitingDialog.hide();
+            alert(data.message);
+            if(data.success == false)
+            {
+                return
+            }
+            var link_download_res = "<a href=\"/asist4cpp/download_result\" class=\"btn btn-primary\"><span class = \"fa fa-download\"></span> 下载统计结果</a>";
+            $('#div_download_res').empty();
+            $('#div_download_res').append(link_download_res);
+        })
+    });
+
+    function update_problem_blocks(){
+        var problem_num = parseInt($('#input_problem_num').val());
+        if( $.isNumeric(problem_num) == false || problem_num <= 0){
+            return
+        }
+        $('#problem_blocks').empty();
+        for(var i =0; i < problem_num; ++i)
+        {
+            var problem_block = "<div class=\"form-group\" ><label class = \"control-label col-md-2\" for=\"input_problem_"+ i +"\">题目 "+ String.fromCharCode(65 + i) +" 关键词</label><div class = \"col-sm-8\"><input id=\"input_problem_"+ i +"\" type=\"text\" class=\"form-control col-md-2\" name=\"problem_"+ i +"\" value = \"cin cout\"></div></div>"
+
+                $('#problem_blocks').append(problem_block);
+        }
+    }
+    update_problem_blocks();
+    $('#input_problem_num').bind('input propertychange', update_problem_blocks);
+});
+
+</script>
+{% endblock %}
+
